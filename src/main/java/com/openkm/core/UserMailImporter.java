@@ -1,0 +1,98 @@
+/**
+ * OpenKM, Open Document Management System (http://www.openkm.com)
+ * Copyright (c) Paco Avila & Josep Llort
+ * <p>
+ * No bytes were intentionally harmed during the development of this application.
+ * <p>
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * <p>
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * <p>
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+package com.openkm.core;
+
+import com.openkm.api.OKMAuth;
+import com.openkm.dao.MailAccountDAO;
+import com.openkm.dao.bean.MailAccount;
+import com.openkm.module.db.stuff.DbSessionManager;
+import com.openkm.principal.PrincipalAdapterException;
+import com.openkm.util.MailUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.TimerTask;
+
+public class UserMailImporter extends TimerTask {
+	private static final Logger log = LoggerFactory.getLogger(UserMailImporter.class);
+	private static volatile boolean running = false;
+	private List<String> exceptionMessages = new ArrayList<>();
+
+	public boolean isRunning() {
+		return running;
+	}
+
+	public List<String> getExceptionMessages() {
+		return exceptionMessages;
+	}
+
+	@Override
+	public void run() {
+		String systemToken = DbSessionManager.getInstance().getSystemToken();
+		runAs(systemToken);
+	}
+
+	public void runAs(String token) {
+		if (running) {
+			log.warn("*** User mail importer already running ***");
+		} else {
+			running = true;
+			exceptionMessages = new ArrayList<>();
+			log.info("*** User mail importer activated ***");
+
+			try {
+				if (Config.SYSTEM_READONLY) {
+					exceptionMessages.add("Warning: System in read-only mode");
+					log.warn("*** System in read-only mode ***");
+				} else {
+					Collection<String> users = OKMAuth.getInstance().getUsers(token);
+
+					for (String user : users) {
+						List<MailAccount> mailAccounts = MailAccountDAO.findByUser(user, true);
+
+						for (MailAccount ma : mailAccounts) {
+							if (Config.SYSTEM_READONLY) {
+								exceptionMessages.add("Warning: System in read-only mode");
+								log.warn("*** System in read-only mode ***");
+							} else {
+								String exceptionMessage = MailUtils.importMessages(token, ma);
+
+								if (exceptionMessage != null) {
+									exceptionMessages.add("Id: " + ma.getId() + ", User: " + ma.getUser() +
+											", Error: " + exceptionMessage);
+								}
+							}
+						}
+					}
+				}
+			} catch (DatabaseException | PrincipalAdapterException e) {
+				log.error(e.getMessage(), e);
+				exceptionMessages.add(e.getMessage());
+			} finally {
+				running = false;
+			}
+		}
+	}
+}

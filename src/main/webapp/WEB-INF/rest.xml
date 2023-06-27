@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns:beans="http://www.springframework.org/schema/beans"
+             xmlns:jaxrs="http://cxf.apache.org/jaxrs"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://www.springframework.org/schema/beans
+                                 http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+                                 http://cxf.apache.org/jaxrs
+                                 http://cxf.apache.org/schemas/jaxrs.xsd">
+
+  <!-- REST -->
+  <jaxrs:server id="rest" address="/rest">
+    <jaxrs:serviceBeans>
+      <beans:bean class="com.openkm.rest.endpoint.AuthService"/>
+      <beans:bean class="com.openkm.rest.endpoint.DocumentService"/>
+      <beans:bean class="com.openkm.rest.endpoint.FolderService"/>
+      <beans:bean class="com.openkm.rest.endpoint.MailService"/>
+      <beans:bean class="com.openkm.rest.endpoint.NoteService"/>
+      <beans:bean class="com.openkm.rest.endpoint.PropertyGroupService"/>
+      <beans:bean class="com.openkm.rest.endpoint.SearchService"/>
+      <beans:bean class="com.openkm.rest.endpoint.RepositoryService"/>
+      <beans:bean class="com.openkm.rest.endpoint.PropertyService"/>
+      <beans:bean class="com.openkm.rest.endpoint.TestService"/>
+      <beans:bean class="com.openkm.rest.endpoint.ConversionService"/>
+      <beans:bean class="com.openkm.rest.endpoint.BookmarkService"/>
+      <beans:bean class="com.openkm.rest.endpoint.WorkflowService"/>
+      <beans:bean class="com.openkm.rest.endpoint.NotificationService"/>
+      <beans:bean class="com.openkm.rest.endpoint.DashboardService"/>
+    </jaxrs:serviceBeans>
+    <jaxrs:providers>
+      <bean class="org.apache.cxf.jaxrs.provider.json.JSONProvider">
+        <property name="dropRootElement" value="true"/>
+        <property name="supportUnwrapped" value="true"/>
+      </bean>
+    </jaxrs:providers>
+    <jaxrs:features>
+       <ref bean="swagger2Feature" />
+    </jaxrs:features>
+  </jaxrs:server>
+</beans:beans>
